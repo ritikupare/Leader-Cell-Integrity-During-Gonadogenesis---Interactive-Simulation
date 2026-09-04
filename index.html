@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leader Cell Integrity During Gonadogenesis — Interactive Simulation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0c0f14;
+    --surface: #151922;
+    --surface-2: #1c2230;
+    --border: #2a3142;
+    --text: #e2e6ef;
+    --text-dim: #8892a6;
+    --accent: #4fc3f7;
+    --accent-dim: rgba(79, 195, 247, 0.15);
+    --nucleus: #7c4dff;
+    --nucleus-glow: rgba(124, 77, 255, 0.3);
+    --actin: #ff6e6e;
+    --actin-glow: rgba(255, 110, 110, 0.25);
+    --mt: #4fc3f7;
+    --mt-dim: rgba(79, 195, 247, 0.2);
+    --cell-fill: rgba(76, 175, 80, 0.08);
+    --cell-stroke: #66bb6a;
+    --germ: rgba(255, 183, 77, 0.5);
+    --danger: #ff5252;
+    --success: #66bb6a;
+    --warning: #ffab40;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .page-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+
+  /* Header */
+  header {
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  header h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+  }
+
+  header h1 span { color: var(--accent); }
+
+  .paper-ref {
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  .paper-ref a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .paper-ref a:hover { text-decoration: underline; }
+
+  /* Main layout */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  @media (max-width: 900px) {
+    .main-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Canvas area */
+  .canvas-wrapper {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .canvas-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+
+  .condition-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    font-weight: 500;
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+    background: var(--accent-dim);
+    color: var(--accent);
+  }
+
+  .condition-label.danger {
+    background: rgba(255, 82, 82, 0.15);
+    color: var(--danger);
+  }
+
+  .time-display {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    cursor: crosshair;
+  }
+
+  .status-bar {
+    display: flex;
+    gap: 1.2rem;
+    padding: 0.6rem 1rem;
+    border-top: 1px solid var(--border);
+    background: var(--surface-2);
+    font-size: 0.72rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-dim);
+    flex-wrap: wrap;
+  }
+
+  .status-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* Control panel */
+  .controls {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .control-group {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+  }
+
+  .control-group h3 {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    margin-bottom: 0.75rem;
+  }
+
+  /* Preset buttons */
+  .presets {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .preset-btn {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.55rem 0.6rem;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    line-height: 1.35;
+  }
+
+  .preset-btn:hover {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+  }
+
+  .preset-btn.active {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+    color: var(--accent);
+  }
+
+  .preset-btn.danger-preset.active {
+    border-color: var(--danger);
+    background: rgba(255, 82, 82, 0.12);
+    color: var(--danger);
+  }
+
+  .preset-label {
+    display: block;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    margin-top: 0.15rem;
+    font-weight: 400;
+  }
+
+  .preset-btn.active .preset-label { color: inherit; opacity: 0.7; }
+
+  /* Sliders */
+  .slider-row {
+    margin-bottom: 0.85rem;
+  }
+
+  .slider-row:last-child { margin-bottom: 0; }
+
+  .slider-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.35rem;
+    font-size: 0.78rem;
+  }
+
+  .slider-label span:first-child { font-weight: 500; }
+
+  .slider-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--accent);
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    outline: none;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--bg);
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--bg);
+  }
+
+  /* Playback controls */
+  .playback {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .play-btn {
+    flex: 1;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 6px;
+    padding: 0.55rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .play-btn:hover { opacity: 0.85; }
+
+  .reset-btn {
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.55rem 0.85rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .reset-btn:hover {
+    border-color: var(--accent);
+  }
+
+  /* Legend */
+  .legend-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+  }
+
+  .legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  /* Bio explanation panel */
+  .bio-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+    margin-top: 1.5rem;
+    grid-column: 1 / -1;
+  }
+
+  .bio-panel h3 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.6rem;
+  }
+
+  .bio-panel p {
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    line-height: 1.65;
+    margin-bottom: 0.5rem;
+  }
+
+  .bio-panel p:last-child { margin-bottom: 0; }
+
+  .bio-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 0.75rem;
+  }
+
+  @media (max-width: 700px) {
+    .bio-grid { grid-template-columns: 1fr; }
+  }
+
+  .bio-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.85rem;
+  }
+
+  .bio-card h4 {
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+  }
+
+  .bio-card p {
+    font-size: 0.75rem;
+  }
+
+  .bio-card.wt { border-left: 3px solid var(--success); }
+  .bio-card.nuc { border-left: 3px solid var(--nucleus); }
+  .bio-card.act { border-left: 3px solid var(--actin); }
+  .bio-card.dbl { border-left: 3px solid var(--danger); }
+
+  /* Footer */
+  footer {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  /* Event readout */
+  .event-log {
+    max-height: 90px;
+    overflow-y: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background: var(--surface-2);
+    border-radius: 4px;
+  }
+
+  .event-log .evt-danger { color: var(--danger); }
+  .event-log .evt-warn { color: var(--warning); }
+  .event-log .evt-ok { color: var(--success); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="page-container">
+
+  <header>
+    <h1>Leader Cell Integrity During <span>Gonadogenesis</span></h1>
+    <p class="paper-ref">
+      Interactive simulation based on Agarwal, Berger, Shemesh &amp; Zaidel-Bar (2024).
+      <a href="https://doi.org/10.1016/j.cub.2024.03.049" target="_blank" rel="noopener"><em>Current Biology</em> 34(11), 2373–2386</a>.
+      <br>Simulates how active nuclear positioning and actomyosin contractility cooperate to maintain distal tip cell (DTC) integrity during <em>C. elegans</em> gonad migration.
+    </p>
+  </header>
+
+  <div class="main-grid">
+
+    <!-- Canvas -->
+    <div class="canvas-wrapper">
+      <div class="canvas-header">
+        <span class="condition-label" id="condLabel">Wild-type</span>
+        <span class="time-display" id="timeDisplay">t = 0.0 h</span>
+      </div>
+      <canvas id="sim" width="840" height="520"></canvas>
+      <div class="status-bar">
+        <div class="status-item"><div class="status-dot" style="background:var(--cell-stroke)"></div>DTC cell body</div>
+        <div class="status-item"><div class="status-dot" style="background:var(--nucleus)"></div>Nucleus</div>
+        <div class="status-item"><div class="status-dot" style="background:var(--mt)"></div>Microtubules</div>
+        <div class="status-item"><div class="status-dot" style="background:var(--actin)"></div>Actomyosin cortex</div>
+        <div class="status-item"><div class="status-dot" style="background:var(--germ)"></div>Germ cells</div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+
+      <div class="control-group">
+        <h3>Genetic Condition</h3>
+        <div class="presets">
+          <button class="preset-btn active" data-preset="wt">
+            Wild-type
+            <span class="preset-label">Normal migration</span>
+          </button>
+          <button class="preset-btn" data-preset="nuc">
+            unc-83 RNAi
+            <span class="preset-label">No nuclear positioning</span>
+          </button>
+          <button class="preset-btn" data-preset="act">
+            nmy-2 RNAi
+            <span class="preset-label">No actomyosin</span>
+          </button>
+          <button class="preset-btn danger-preset" data-preset="dbl">
+            Double KD
+            <span class="preset-label">Splitting phenotype</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <h3>Parameters</h3>
+        <div class="slider-row">
+          <div class="slider-label">
+            <span>Kinesin-1 motor force</span>
+            <span class="slider-value" id="valMotor">100%</span>
+          </div>
+          <input type="range" id="sliderMotor" min="0" max="100" value="100">
+        </div>
+        <div class="slider-row">
+          <div class="slider-label">
+            <span>Cortical contractility</span>
+            <span class="slider-value" id="valCortex">100%</span>
+          </div>
+          <input type="range" id="sliderCortex" min="0" max="100" value="100">
+        </div>
+        <div class="slider-row">
+          <div class="slider-label">
+            <span>Migration speed</span>
+            <span class="slider-value" id="valSpeed">1.0×</span>
+          </div>
+          <input type="range" id="sliderSpeed" min="20" max="200" value="100">
+        </div>
+      </div>
+
+      <div class="control-group">
+        <h3>Playback</h3>
+        <div class="playback">
+          <button class="play-btn" id="btnPlay">▶ Play</button>
+          <button class="reset-btn" id="btnReset">Reset</button>
+        </div>
+        <div class="event-log" id="eventLog"></div>
+      </div>
+
+      <div class="control-group">
+        <h3>Legend</h3>
+        <div class="legend-items">
+          <div class="legend-item">
+            <div class="legend-swatch" style="background:var(--cell-stroke)"></div>
+            DTC membrane
+          </div>
+          <div class="legend-item">
+            <div class="legend-swatch" style="background:var(--nucleus)"></div>
+            Nucleus (via UNC-83/KASH)
+          </div>
+          <div class="legend-item">
+            <div class="legend-swatch" style="background:var(--mt)"></div>
+            Acentrosomal microtubule network
+          </div>
+          <div class="legend-item">
+            <div class="legend-swatch" style="background:var(--actin)"></div>
+            Actomyosin cortex (NMY-2)
+          </div>
+          <div class="legend-item">
+            <div class="legend-swatch" style="background:var(--germ)"></div>
+            Trailing germ cells
+          </div>
+          <div class="legend-item">
+            <div class="legend-swatch" style="background:var(--danger)"></div>
+            Fragmentation site
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Biology explanation -->
+  <div class="bio-panel">
+    <h3>What does this simulation model?</h3>
+    <p>
+      During <em>C. elegans</em> gonad morphogenesis, a single leader cell called the distal tip cell (DTC) migrates along a stereotyped path — first anteriorly, then making a U-turn dorsally — to shape the two arms of the gonad. The DTC's nucleus is always found at the migratory front. Agarwal et al. (2024) discovered that the KASH-domain protein UNC-83 links the nucleus to kinesin-1 motors moving on a polarised acentrosomal microtubule network, actively pulling the nucleus forward against frictional drag.
+    </p>
+    <p>
+      Critically, disrupting nuclear positioning alone (unc-83 RNAi) does not break gonad morphogenesis — actomyosin cortical contractility compensates by maintaining cell shape. Disrupting contractility alone (nmy-2 RNAi) is also tolerated because the nucleus stays at the front. But when both are lost simultaneously, the DTC stretches during the U-turn until it fragments into a nucleated cell and an enucleated cytoplast, causing gonad bifurcation.
+    </p>
+    <div class="bio-grid">
+      <div class="bio-card wt">
+        <h4>Wild-type</h4>
+        <p>Nucleus at front + cortical tension → normal migration, successful U-turn, single gonadal arm.</p>
+      </div>
+      <div class="bio-card nuc">
+        <h4>unc-83 RNAi (nuclear positioning ↓)</h4>
+        <p>Nucleus drifts backward under friction, but actomyosin contractility holds cell together through the turn.</p>
+      </div>
+      <div class="bio-card act">
+        <h4>nmy-2 RNAi (actomyosin ↓)</h4>
+        <p>Cortex is weakened, cell elongates slightly, but front-positioned nucleus prevents critical stretching.</p>
+      </div>
+      <div class="bio-card dbl">
+        <h4>Double knockdown</h4>
+        <p>Nucleus lags + no cortical tension → cell stretches catastrophically at the U-turn → DTC fragments → gonad bifurcates.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Qualitative simulation for educational purposes — not a quantitative biophysical model.
+    <br>Based on: Agarwal P, Berger S, Shemesh T, Zaidel-Bar R. <em>Curr. Biol.</em> 34(11):2373–2386.e5 (2024).
+    <br>DOI: <a href="https://doi.org/10.1016/j.cub.2024.03.049" target="_blank" rel="noopener">10.1016/j.cub.2024.03.049</a>
+  </footer>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// DTC Leader Cell Simulation
+// Models nuclear positioning & actomyosin
+// contractility during C. elegans gonadogenesis
+// ═══════════════════════════════════════════
+
+const canvas = document.getElementById('sim');
+const ctx = canvas.getContext('2d');
+
+// High-DPI scaling
+const dpr = window.devicePixelRatio || 1;
+let W, H;
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const headerH = canvas.parentElement.querySelector('.canvas-header').offsetHeight;
+  const statusH = canvas.parentElement.querySelector('.status-bar').offsetHeight;
+  W = rect.width;
+  H = Math.max(380, Math.min(520, window.innerHeight * 0.5));
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+// ─── Colours ─────────────────────────────
+const COL = {
+  bg: '#0c0f14',
+  cellFill: 'rgba(76, 175, 80, 0.06)',
+  cellStroke: '#66bb6a',
+  cellGlow: 'rgba(102, 187, 106, 0.15)',
+  nucleus: '#7c4dff',
+  nucleusGlow: 'rgba(124, 77, 255, 0.4)',
+  mt: '#4fc3f7',
+  mtDim: 'rgba(79, 195, 247, 0.15)',
+  actin: '#ff6e6e',
+  actinGlow: 'rgba(255, 110, 110, 0.2)',
+  germ: 'rgba(255, 183, 77, 0.45)',
+  germStroke: 'rgba(255, 183, 77, 0.6)',
+  danger: '#ff5252',
+  dangerGlow: 'rgba(255, 82, 82, 0.35)',
+  path: 'rgba(79, 195, 247, 0.08)',
+  pathStroke: 'rgba(79, 195, 247, 0.15)',
+  tissue: 'rgba(200, 200, 220, 0.03)',
+};
+
+// ─── Migration path (U-turn) ─────────────
+// The DTC migrates anteriorly then makes a dorsal U-turn
+function getMigrationPath() {
+  const pts = [];
+  const cx = W * 0.5;
+  const cy = H * 0.55;
+  const armLen = W * 0.32;
+  const turnR = H * 0.18;
+
+  // Ventral arm (right to left)
+  const nStraight = 60;
+  for (let i = 0; i < nStraight; i++) {
+    const t = i / nStraight;
+    pts.push({
+      x: cx + armLen - t * armLen * 2 * 0.55,
+      y: cy + turnR
+    });
+  }
+
+  // U-turn (semicircle, going up then back right)
+  const turnCx = pts[pts.length - 1].x;
+  const turnCy = cy;
+  const nTurn = 40;
+  for (let i = 0; i <= nTurn; i++) {
+    const angle = Math.PI * 0.5 + (Math.PI * i / nTurn);
+    pts.push({
+      x: turnCx + turnR * Math.cos(angle),
+      y: turnCy + turnR * Math.sin(angle)
+    });
+  }
+
+  // Dorsal arm (left to right)
+  const lastPt = pts[pts.length - 1];
+  for (let i = 1; i <= nStraight; i++) {
+    const t = i / nStraight;
+    pts.push({
+      x: lastPt.x + t * armLen * 1.2,
+      y: lastPt.y
+    });
+  }
+
+  return pts;
+}
+
+let migrationPath = getMigrationPath();
+
+// ─── Simulation state ────────────────────
+let state = {
+  running: false,
+  time: 0,
+  dt: 0.016,
+  speedMul: 1.0,
+
+  // Parameters
+  motorForce: 1.0,      // Kinesin-1 motor force (0–1)
+  cortexForce: 1.0,     // Actomyosin contractility (0–1)
+
+  // DTC state
+  pathPos: 0,           // Position along migration path (0–1)
+  migrationSpeed: 0.12, // Base migration speed
+
+  // Nuclear position relative to cell center
+  // 0 = at front, 1 = at back
+  nuclearLag: 0,
+  nuclearVel: 0,
+
+  // Cell shape
+  cellLength: 1.0,      // Normalised cell length (1 = normal)
+  cellLengthVel: 0,
+
+  // Fragmentation
+  fragmented: false,
+  fragmentTime: 0,
+  fragmentPos: 0,       // path position at fragmentation
+
+  // Germ cells
+  germCells: [],
+
+  // Event flags
+  logged: { stretch: false, lag: false, frag: false, uturn: false }
+};
+
+function initGermCells() {
+  state.germCells = [];
+  for (let i = 0; i < 18; i++) {
+    state.germCells.push({
+      offset: -(i + 1) * 0.022,
+      lateralOff: (Math.random() - 0.5) * 0.6,
+      radius: 5 + Math.random() * 3,
+      phase: Math.random() * Math.PI * 2
+    });
+  }
+}
+
+function resetState() {
+  state.time = 0;
+  state.pathPos = 0;
+  state.nuclearLag = 0;
+  state.nuclearVel = 0;
+  state.cellLength = 1.0;
+  state.cellLengthVel = 0;
+  state.fragmented = false;
+  state.fragmentTime = 0;
+  state.fragmentPos = 0;
+  state.logged = { stretch: false, lag: false, frag: false, uturn: false };
+  document.getElementById('eventLog').innerHTML = '';
+  initGermCells();
+  migrationPath = getMigrationPath();
+}
+
+resetState();
+
+// ─── Path utilities ──────────────────────
+function getPathPoint(t) {
+  t = Math.max(0, Math.min(1, t));
+  const idx = t * (migrationPath.length - 1);
+  const i0 = Math.floor(idx);
+  const i1 = Math.min(i0 + 1, migrationPath.length - 1);
+  const frac = idx - i0;
+  return {
+    x: migrationPath[i0].x + (migrationPath[i1].x - migrationPath[i0].x) * frac,
+    y: migrationPath[i0].y + (migrationPath[i1].y - migrationPath[i0].y) * frac
+  };
+}
+
+function getPathTangent(t) {
+  const eps = 0.002;
+  const p0 = getPathPoint(t - eps);
+  const p1 = getPathPoint(t + eps);
+  const dx = p1.x - p0.x;
+  const dy = p1.y - p0.y;
+  const len = Math.sqrt(dx * dx + dy * dy) || 1;
+  return { x: dx / len, y: dy / len };
+}
+
+function getPathCurvature(t) {
+  const eps = 0.005;
+  const t0 = getPathTangent(t - eps);
+  const t1 = getPathTangent(t + eps);
+  return Math.sqrt((t1.x - t0.x) ** 2 + (t1.y - t0.y) ** 2) / (2 * eps);
+}
+
+// ─── Physics step ────────────────────────
+function physicsStep() {
+  const dt = state.dt * state.speedMul;
+  state.time += dt;
+
+  if (state.fragmented) return;
+
+  // Advance along path
+  const curvature = getPathCurvature(state.pathPos);
+  const isInTurn = curvature > 2;
+  const turnSlowdown = isInTurn ? 0.6 : 1.0;
+  state.pathPos += state.migrationSpeed * dt * turnSlowdown * 0.08;
+
+  if (state.pathPos > 0.95) {
+    state.pathPos = 0.95;
+  }
+
+  // U-turn event
+  if (isInTurn && !state.logged.uturn) {
+    logEvent('DTC entering U-turn region', 'evt-warn');
+    state.logged.uturn = true;
+  }
+
+  // ── Nuclear positioning dynamics ──
+  // Friction pushes nucleus backward; motors pull forward
+  const frictionForce = isInTurn ? 0.8 : 0.3;
+  const motorPull = state.motorForce * 1.5;
+  const nuclearNetForce = frictionForce - motorPull;
+  const nuclearDamping = 3.0;
+
+  state.nuclearVel += nuclearNetForce * dt;
+  state.nuclearVel *= Math.exp(-nuclearDamping * dt);
+  state.nuclearLag += state.nuclearVel * dt;
+  state.nuclearLag = Math.max(0, Math.min(1, state.nuclearLag));
+
+  if (state.nuclearLag > 0.4 && !state.logged.lag) {
+    logEvent('Nucleus drifting to rear of cell', 'evt-warn');
+    state.logged.lag = true;
+  }
+
+  // ── Cell length dynamics ──
+  // Stretching force from turn + nuclear lag
+  const stretchDrive = isInTurn ? (curvature * 0.15 + state.nuclearLag * 0.6) : state.nuclearLag * 0.2;
+  // Contractility restores cell length
+  const restoreForce = state.cortexForce * 2.5 * (state.cellLength - 1.0);
+  const passiveRestore = 0.3 * (state.cellLength - 1.0);
+  const cellDamping = 4.0;
+
+  state.cellLengthVel += (stretchDrive - restoreForce - passiveRestore) * dt;
+  state.cellLengthVel *= Math.exp(-cellDamping * dt);
+  state.cellLength += state.cellLengthVel * dt;
+  state.cellLength = Math.max(0.8, state.cellLength);
+
+  if (state.cellLength > 1.5 && !state.logged.stretch) {
+    logEvent('DTC stretching under mechanical load', 'evt-warn');
+    state.logged.stretch = true;
+  }
+
+  // ── Fragmentation ──
+  // Occurs only when both mechanisms fail (double KD phenotype)
+  if (state.cellLength > 2.2 && state.nuclearLag > 0.55 && !state.fragmented) {
+    state.fragmented = true;
+    state.fragmentTime = state.time;
+    state.fragmentPos = state.pathPos;
+    logEvent('DTC FRAGMENTED — gonad bifurcation', 'evt-danger');
+  }
+}
+
+// ─── Event log ───────────────────────────
+function logEvent(msg, cls) {
+  const log = document.getElementById('eventLog');
+  const t = state.time.toFixed(1);
+  log.innerHTML += `<div class="${cls || ''}">[${t}h] ${msg}</div>`;
+  log.scrollTop = log.scrollHeight;
+}
+
+// ─── Drawing ─────────────────────────────
+
+function drawBackground() {
+  ctx.fillStyle = COL.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Body wall / tissue hint
+  ctx.save();
+  ctx.strokeStyle = 'rgba(120, 130, 160, 0.06)';
+  ctx.lineWidth = 1;
+  for (let y = 0; y < H; y += 40) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawMigrationPath() {
+  ctx.save();
+  // Draw full path as faint guide
+  ctx.beginPath();
+  ctx.strokeStyle = COL.pathStroke;
+  ctx.lineWidth = 24;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  for (let i = 0; i < migrationPath.length; i++) {
+    const p = migrationPath[i];
+    if (i === 0) ctx.moveTo(p.x, p.y);
+    else ctx.lineTo(p.x, p.y);
+  }
+  ctx.stroke();
+
+  // Thinner inner path
+  ctx.strokeStyle = COL.path;
+  ctx.lineWidth = 18;
+  ctx.stroke();
+
+  // Direction arrows along path
+  ctx.strokeStyle = 'rgba(79, 195, 247, 0.12)';
+  ctx.fillStyle = 'rgba(79, 195, 247, 0.12)';
+  ctx.lineWidth = 1.5;
+  for (let t = 0.05; t < 0.95; t += 0.08) {
+    const p = getPathPoint(t);
+    const tang = getPathTangent(t);
+    const sz = 5;
+    ctx.beginPath();
+    ctx.moveTo(p.x + tang.x * sz, p.y + tang.y * sz);
+    ctx.lineTo(p.x - tang.x * sz - tang.y * sz * 0.6, p.y - tang.y * sz + tang.x * sz * 0.6);
+    ctx.lineTo(p.x - tang.x * sz + tang.y * sz * 0.6, p.y - tang.y * sz - tang.x * sz * 0.6);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Labels
+  ctx.font = '500 11px Inter, sans-serif';
+  ctx.fillStyle = 'rgba(79, 195, 247, 0.25)';
+  ctx.textAlign = 'center';
+  const startPt = getPathPoint(0);
+  const midPt = getPathPoint(0.5);
+  const endPt = getPathPoint(0.95);
+  ctx.fillText('START', startPt.x, startPt.y + 30);
+  ctx.fillText('U-TURN', midPt.x - 25, midPt.y);
+  ctx.fillText('DORSAL', endPt.x, endPt.y - 20);
+
+  ctx.restore();
+}
+
+function drawGermCells() {
+  ctx.save();
+  for (const gc of state.germCells) {
+    let t = state.pathPos + gc.offset;
+    if (t < 0) continue;
+
+    const p = getPathPoint(t);
+    const tang = getPathTangent(t);
+    const norm = { x: -tang.y, y: tang.x };
+    const wobble = Math.sin(state.time * 2 + gc.phase) * 2;
+
+    const gx = p.x + norm.x * gc.lateralOff * 25 + norm.x * wobble;
+    const gy = p.y + norm.y * gc.lateralOff * 25 + norm.y * wobble;
+
+    // Germ cell body
+    ctx.beginPath();
+    ctx.arc(gx, gy, gc.radius, 0, Math.PI * 2);
+    ctx.fillStyle = COL.germ;
+    ctx.fill();
+    ctx.strokeStyle = COL.germStroke;
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+
+    // Tiny nucleus
+    ctx.beginPath();
+    ctx.arc(gx, gy, gc.radius * 0.4, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255, 200, 100, 0.5)';
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawDTC() {
+  const pos = getPathPoint(state.pathPos);
+  const tang = getPathTangent(state.pathPos);
+  const norm = { x: -tang.y, y: tang.x };
+
+  const baseLen = 38;
+  const baseWidth = 22;
+  const cellLen = baseLen * state.cellLength;
+  const cellWid = baseWidth / Math.sqrt(state.cellLength); // conserve area
+
+  // Cell center and nuclear position
+  const frontX = pos.x;
+  const frontY = pos.y;
+  const rearX = pos.x - tang.x * cellLen;
+  const rearY = pos.y - tang.y * cellLen;
+
+  const nucX = frontX - tang.x * cellLen * state.nuclearLag * 0.7;
+  const nucY = frontY - tang.y * cellLen * state.nuclearLag * 0.7;
+
+  ctx.save();
+
+  // ── Microtubule network ──
+  if (state.motorForce > 0.1) {
+    const mtAlpha = state.motorForce * 0.5;
+    ctx.strokeStyle = `rgba(79, 195, 247, ${mtAlpha * 0.4})`;
+    ctx.lineWidth = 1;
+    const nMT = 8;
+    for (let i = 0; i < nMT; i++) {
+      const angle = (i / nMT) * Math.PI * 2;
+      const r = cellWid * 0.6;
+      const endX = nucX + Math.cos(angle) * r + tang.x * cellLen * 0.3;
+      const endY = nucY + Math.sin(angle) * r + tang.y * cellLen * 0.3;
+      ctx.beginPath();
+      ctx.moveTo(nucX, nucY);
+      const cpx = (nucX + endX) / 2 + (Math.random() - 0.5) * 8;
+      const cpy = (nucY + endY) / 2 + (Math.random() - 0.5) * 8;
+      ctx.quadraticCurveTo(cpx, cpy, endX, endY);
+      ctx.stroke();
+
+      // Motor dots moving along MT
+      const motorT = (state.time * 3 + i * 0.3) % 1;
+      const mx = nucX + (endX - nucX) * motorT;
+      const my = nucY + (endY - nucY) * motorT;
+      ctx.beginPath();
+      ctx.arc(mx, my, 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(79, 195, 247, ${mtAlpha * 0.7})`;
+      ctx.fill();
+    }
+
+    // Polarised MT bundle toward front
+    ctx.strokeStyle = `rgba(79, 195, 247, ${mtAlpha * 0.3})`;
+    ctx.lineWidth = 1.5;
+    for (let i = -2; i <= 2; i++) {
+      ctx.beginPath();
+      ctx.moveTo(nucX + norm.x * i * 3, nucY + norm.y * i * 3);
+      ctx.lineTo(frontX + norm.x * i * 2, frontY + norm.y * i * 2);
+      ctx.stroke();
+    }
+  }
+
+  // ── Cell body ──
+  // Draw as elongated ellipse-like shape
+  ctx.beginPath();
+  const cx = (frontX + rearX) / 2;
+  const cy = (frontY + rearY) / 2;
+  const angle = Math.atan2(tang.y, tang.x);
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(angle);
+
+  // Cell shape — ellipse with leading-edge protrusion
+  ctx.beginPath();
+  ctx.ellipse(0, 0, cellLen / 2, cellWid, 0, 0, Math.PI * 2);
+
+  // Glow
+  const gradient = ctx.createRadialGradient(0, 0, cellLen * 0.2, 0, 0, cellLen * 0.7);
+  gradient.addColorStop(0, 'rgba(76, 175, 80, 0.1)');
+  gradient.addColorStop(1, 'rgba(76, 175, 80, 0.02)');
+  ctx.fillStyle = gradient;
+  ctx.fill();
+
+  // Membrane
+  ctx.strokeStyle = COL.cellStroke;
+  ctx.lineWidth = 2;
+  ctx.globalAlpha = 0.7;
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // ── Actomyosin cortex ──
+  if (state.cortexForce > 0.1) {
+    const actAlpha = state.cortexForce * 0.7;
+    ctx.strokeStyle = `rgba(255, 110, 110, ${actAlpha * 0.5})`;
+    ctx.lineWidth = 3;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, cellLen / 2 - 2, cellWid - 2, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Contractile nodes
+    const nNodes = 12;
+    for (let i = 0; i < nNodes; i++) {
+      const a = (i / nNodes) * Math.PI * 2;
+      const pulse = 1 + Math.sin(state.time * 4 + i) * 0.3 * state.cortexForce;
+      const nx = Math.cos(a) * (cellLen / 2 - 3);
+      const ny = Math.sin(a) * (cellWid - 3);
+      ctx.beginPath();
+      ctx.arc(nx, ny, 2 * pulse, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255, 110, 110, ${actAlpha * 0.6})`;
+      ctx.fill();
+    }
+  }
+
+  // ── Nucleus ──
+  const nucLocalX = -cellLen / 2 + cellLen * (1 - state.nuclearLag * 0.7);
+  const nucR = 8 / Math.sqrt(state.cellLength);
+
+  // Nuclear glow
+  const nucGrad = ctx.createRadialGradient(nucLocalX, 0, nucR * 0.3, nucLocalX, 0, nucR * 2.5);
+  nucGrad.addColorStop(0, 'rgba(124, 77, 255, 0.3)');
+  nucGrad.addColorStop(1, 'rgba(124, 77, 255, 0)');
+  ctx.fillStyle = nucGrad;
+  ctx.fillRect(nucLocalX - nucR * 3, -nucR * 3, nucR * 6, nucR * 6);
+
+  // Nucleus body
+  ctx.beginPath();
+  ctx.arc(nucLocalX, 0, nucR, 0, Math.PI * 2);
+  ctx.fillStyle = COL.nucleus;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(124, 77, 255, 0.8)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Chromatin texture
+  ctx.beginPath();
+  ctx.arc(nucLocalX - 2, -2, nucR * 0.35, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+  ctx.fill();
+
+  // Leading edge (filopodia-like)
+  ctx.strokeStyle = 'rgba(102, 187, 106, 0.3)';
+  ctx.lineWidth = 1;
+  for (let i = -2; i <= 2; i++) {
+    const fy = i * 4;
+    const fx = cellLen / 2;
+    ctx.beginPath();
+    ctx.moveTo(fx, fy);
+    const tipLen = 8 + Math.sin(state.time * 3 + i) * 3;
+    ctx.lineTo(fx + tipLen, fy + i * 1.5);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+
+  // ── Fragmentation visualization ──
+  if (state.fragmented) {
+    const fragElapsed = state.time - state.fragmentTime;
+    const separation = Math.min(fragElapsed * 15, 35);
+
+    // Fracture line
+    const fragWorldX = pos.x - tang.x * cellLen * 0.4;
+    const fragWorldY = pos.y - tang.y * cellLen * 0.4;
+
+    // Lightning-bolt fracture
+    ctx.save();
+    ctx.strokeStyle = COL.danger;
+    ctx.lineWidth = 2;
+    ctx.shadowColor = COL.dangerGlow;
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    for (let i = -cellWid; i <= cellWid; i += 3) {
+      const fx = fragWorldX + norm.x * i + (Math.random() - 0.5) * 3;
+      const fy = fragWorldY + norm.y * i + (Math.random() - 0.5) * 3;
+      if (i === -cellWid) ctx.moveTo(fx, fy);
+      else ctx.lineTo(fx, fy);
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+
+    // Two fragments drifting apart
+    if (separation > 5) {
+      // Nucleated fragment (rear)
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      ctx.beginPath();
+      ctx.arc(
+        rearX - tang.x * separation * 0.3,
+        rearY - tang.y * separation * 0.3,
+        cellWid * 0.8,
+        0, Math.PI * 2
+      );
+      ctx.fillStyle = 'rgba(76, 175, 80, 0.08)';
+      ctx.fill();
+      ctx.strokeStyle = COL.cellStroke;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Nucleus in rear fragment
+      ctx.beginPath();
+      ctx.arc(
+        rearX - tang.x * separation * 0.3,
+        rearY - tang.y * separation * 0.3,
+        6, 0, Math.PI * 2
+      );
+      ctx.fillStyle = COL.nucleus;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.restore();
+
+      // Enucleated cytoplast (front — continues leading)
+      ctx.save();
+      ctx.globalAlpha = 0.4;
+      ctx.beginPath();
+      ctx.arc(
+        frontX + tang.x * separation * 0.3,
+        frontY + tang.y * separation * 0.3,
+        cellWid * 0.7,
+        0, Math.PI * 2
+      );
+      ctx.fillStyle = 'rgba(76, 175, 80, 0.06)';
+      ctx.fill();
+      ctx.strokeStyle = COL.cellStroke;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([3, 3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+      ctx.restore();
+
+      // Labels
+      ctx.font = '500 10px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = COL.nucleus;
+      ctx.fillText('nucleated',
+        rearX - tang.x * separation * 0.3,
+        rearY - tang.y * separation * 0.3 + cellWid + 14
+      );
+      ctx.fillStyle = COL.danger;
+      ctx.fillText('enucleated cytoplast',
+        frontX + tang.x * separation * 0.3,
+        frontY + tang.y * separation * 0.3 + cellWid + 14
+      );
+    }
+  }
+
+  // ── Stress indicator ──
+  if (state.cellLength > 1.3 && !state.fragmented) {
+    const stressAlpha = Math.min((state.cellLength - 1.3) / 0.9, 0.8);
+    const midBodyX = (frontX + rearX) / 2;
+    const midBodyY = (frontY + rearY) / 2;
+
+    // Stress halo
+    const stressGrad = ctx.createRadialGradient(midBodyX, midBodyY, 5, midBodyX, midBodyY, 30);
+    stressGrad.addColorStop(0, `rgba(255, 82, 82, ${stressAlpha * 0.3})`);
+    stressGrad.addColorStop(1, 'rgba(255, 82, 82, 0)');
+    ctx.fillStyle = stressGrad;
+    ctx.fillRect(midBodyX - 35, midBodyY - 35, 70, 70);
+
+    // Warning text
+    if (state.cellLength > 1.8) {
+      ctx.font = '600 10px JetBrains Mono, monospace';
+      ctx.fillStyle = `rgba(255, 82, 82, ${stressAlpha})`;
+      ctx.textAlign = 'center';
+      ctx.fillText('⚠ CRITICAL STRETCH', midBodyX, midBodyY - cellWid - 10);
+    }
+  }
+
+  ctx.restore();
+}
+
+function drawHUD() {
+  ctx.save();
+  const x = 15;
+  let y = 20;
+  ctx.font = '500 11px JetBrains Mono, monospace';
+  ctx.textAlign = 'left';
+
+  // Nuclear lag meter
+  ctx.fillStyle = 'rgba(200, 210, 230, 0.4)';
+  ctx.fillText('Nuclear lag', x, y);
+  y += 14;
+  const barW = 100;
+  const barH = 5;
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  ctx.fillRect(x, y, barW, barH);
+  const lagColor = state.nuclearLag > 0.5 ? COL.danger : state.nuclearLag > 0.3 ? COL.warning : COL.success;
+  ctx.fillStyle = lagColor;
+  ctx.fillRect(x, y, barW * state.nuclearLag, barH);
+  y += 18;
+
+  // Cell stretch meter
+  ctx.fillStyle = 'rgba(200, 210, 230, 0.4)';
+  ctx.fillText('Cell stretch', x, y);
+  y += 14;
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  ctx.fillRect(x, y, barW, barH);
+  const stretchNorm = Math.min((state.cellLength - 0.8) / 1.8, 1);
+  const strColor = state.cellLength > 1.8 ? COL.danger : state.cellLength > 1.3 ? COL.warning : COL.success;
+  ctx.fillStyle = strColor;
+  ctx.fillRect(x, y, barW * stretchNorm, barH);
+  y += 18;
+
+  // Curvature
+  const curv = getPathCurvature(state.pathPos);
+  ctx.fillStyle = 'rgba(200, 210, 230, 0.4)';
+  ctx.fillText(`Curvature: ${curv.toFixed(1)}`, x, y);
+  y += 16;
+
+  // Migration progress
+  ctx.fillText(`Progress: ${(state.pathPos * 100).toFixed(0)}%`, x, y);
+
+  ctx.restore();
+}
+
+// ─── Main loop ───────────────────────────
+function render() {
+  drawBackground();
+  drawMigrationPath();
+  drawGermCells();
+  drawDTC();
+  drawHUD();
+}
+
+function loop() {
+  if (state.running) {
+    physicsStep();
+  }
+  render();
+
+  // Update UI
+  document.getElementById('timeDisplay').textContent = `t = ${state.time.toFixed(1)} h`;
+
+  // Update condition label
+  const cl = document.getElementById('condLabel');
+  if (state.fragmented) {
+    cl.textContent = 'FRAGMENTED — Gonad bifurcation';
+    cl.className = 'condition-label danger';
+  } else if (state.motorForce < 0.15 && state.cortexForce < 0.15) {
+    cl.textContent = 'Double knockdown';
+    cl.className = 'condition-label danger';
+  } else if (state.motorForce < 0.15) {
+    cl.textContent = 'unc-83 RNAi — No nuclear positioning';
+    cl.className = 'condition-label';
+  } else if (state.cortexForce < 0.15) {
+    cl.textContent = 'nmy-2 RNAi — No actomyosin';
+    cl.className = 'condition-label';
+  } else {
+    cl.textContent = 'Wild-type';
+    cl.className = 'condition-label';
+  }
+
+  requestAnimationFrame(loop);
+}
+
+// ─── Controls ────────────────────────────
+const sliderMotor = document.getElementById('sliderMotor');
+const sliderCortex = document.getElementById('sliderCortex');
+const sliderSpeed = document.getElementById('sliderSpeed');
+
+sliderMotor.addEventListener('input', () => {
+  state.motorForce = sliderMotor.value / 100;
+  document.getElementById('valMotor').textContent = sliderMotor.value + '%';
+  updatePresetHighlight();
+});
+
+sliderCortex.addEventListener('input', () => {
+  state.cortexForce = sliderCortex.value / 100;
+  document.getElementById('valCortex').textContent = sliderCortex.value + '%';
+  updatePresetHighlight();
+});
+
+sliderSpeed.addEventListener('input', () => {
+  state.speedMul = sliderSpeed.value / 100;
+  document.getElementById('valSpeed').textContent = state.speedMul.toFixed(1) + '×';
+});
+
+// Preset buttons
+const presets = {
+  wt:  { motor: 100, cortex: 100 },
+  nuc: { motor: 0,   cortex: 100 },
+  act: { motor: 100, cortex: 0   },
+  dbl: { motor: 0,   cortex: 0   },
+};
+
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const p = presets[btn.dataset.preset];
+    sliderMotor.value = p.motor;
+    sliderCortex.value = p.cortex;
+    state.motorForce = p.motor / 100;
+    state.cortexForce = p.cortex / 100;
+    document.getElementById('valMotor').textContent = p.motor + '%';
+    document.getElementById('valCortex').textContent = p.cortex + '%';
+    updatePresetHighlight();
+    resetState();
+  });
+});
+
+function updatePresetHighlight() {
+  const m = Math.round(state.motorForce * 100);
+  const c = Math.round(state.cortexForce * 100);
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    const p = presets[btn.dataset.preset];
+    btn.classList.toggle('active', p.motor === m && p.cortex === c);
+  });
+}
+
+// Play/Pause
+const btnPlay = document.getElementById('btnPlay');
+btnPlay.addEventListener('click', () => {
+  state.running = !state.running;
+  btnPlay.textContent = state.running ? '⏸ Pause' : '▶ Play';
+});
+
+// Reset
+document.getElementById('btnReset').addEventListener('click', () => {
+  state.running = false;
+  btnPlay.textContent = '▶ Play';
+  resetState();
+});
+
+// ─── Start ───────────────────────────────
+render();
+loop();
+
+</script>
+</body>
+</html>
